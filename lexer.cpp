@@ -3,7 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <regex>
+
 
 using namespace std;
 
@@ -397,7 +397,7 @@ int Lexer::state0(char c, stringstream &lexeme)
         _lexreg_.set(cell->token, cell->lexeme, cell);
         nextState = 15;
     } 
-    else if (c = EOF)
+    else if (c == EOF)
     {
         _lexreg_.set(Token::EndOfFile, "", NULL);
         cin.putback(c);
@@ -638,7 +638,7 @@ int Lexer::state7(char c, stringstream &lexeme)
 int Lexer::state8(char c, stringstream &lexeme)
 {
     int nextState = 15;
-
+    
     if (c == '=')
         lexeme << c;
     else
@@ -656,7 +656,7 @@ int Lexer::state9(char c, stringstream &lexeme)
 
     if (c == '=')
         lexeme << c;
-    else if (c = '-')
+    else if (c == '-')
         lexeme << c;
     else
         std::cin.putback(c);
@@ -735,71 +735,63 @@ int Lexer::state14(char c, stringstream &lexeme)
 
 bool Lexer::isLetter(char c)
 {
-    string _letterRange = "[a-zA-Z]"; //todas minusculas todas maiusculas
-    string str(1, c);                 // tranformar em string para utilizar no regex
+    bool result = false;
+    if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')){
+        result = true; // is a letter
+    }
 
-    regex range(_letterRange);
-
-    return regex_match(str, range);
+    return result;
 }
 
 bool Lexer::isNumber(char c)
 {
-    string _numberRange = "[0-9]";
-    string str(1, c);
+    bool result = false;
+    if(c >= '0' && c <='9'){
+        result = true; // is a number
+    }
 
-    regex range(_numberRange);
-
-    return regex_match(str, range);
+    return result;
 }
 
 //para os byte que podem ser escritos na forma hex
 bool Lexer::isHex(char c)
 {
-    string _hexRange = "[0-9a-fA-F]";
-    string str(1, c);
+    bool result = false;
+    if((c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || isNumber(c)){
+        result = true; // is hex
+    }
 
-    regex range(_hexRange);
-
-    return regex_match(str, range); // verificar se stringe permite ao range estabelecido pelos
-                                    // caracteres hexadecimal
+    return result;
 }
 
 bool Lexer::whitespace(char c)
 {
-    string _espacos_brancos = "\t|\n|\r| "; //todos os possiveis espacos em branco e quebra de linha
-    string str(1, c);
+    bool result = false;
+    
+    if(c == '\t' || c == '\n' || c == '\r' || c == ' '){ //todos os possiveis espacos em branco e quebra de linha
+        result = true;
+    }
 
-    regex range(_espacos_brancos);
-
-    return regex_match(str, range);
+    return result;
 }
 
 bool Lexer::unitKeywords(char c)
 {
-    string _simbolos = "=|\\(|\\)|,|\\+|-|\\*|;|\\.|'|\\?|:|\\{|\\}|\\[|\\]";
-    string str(1, c);
+    bool result = false;
 
-    regex range(_simbolos);
-
-    return regex_match(str, range);
+    if(c == '=' || c == '(' || c == ')' || c == ',' || c == '+' || c == '-' || c == '*' || c == ';'){
+        result = true;
+    }
+    
+    return result;
 }
 
-bool Lexer::IsValid(char c)
-{
-
-    string letterRange = "[a-zA-Z]"; //todas minusculas todas maiusculas
-    string simbolos = "=|\\(|\\)|,|\\+|-|\\*|;|\\.|'|\\?|:|\\{|\\}|\\[|\\]";
-    string espacos_brancos = "\t|\n|\r| "; //todos os possiveis espacos em branco e quebra de linha
-    string numberRange = "[0-9]";
-    string str(1, c);
-    string extras = "&|_|<|>|!|\\/|\"|\\";
-
+bool Lexer::IsValid(char c) //saber se tá na linguagem
+{    
+    bool extra = c == '.' || c == '\'' || c == '?' || c == ':' || c == '{' || c == '}' || c == '[' || c == ']' ||
+    c == '&' || c == '_' || c == '<' || c == '>' || c == '!' || c == '/' || c == '"' || c == '|';
     //formar agora o domionio da linguagem, todas os simbolos pertecentes a ela
-    string dominio = letterRange + '|' + numberRange + '|' + espacos_brancos + '|' + simbolos + '|' + extras + "|";
-    regex range(dominio);
-
-    return regex_match(str, range);
+    return (isLetter(c) || isNumber(c) || whitespace(c) || unitKeywords(c) || extra);
 }
 // Fim do Lexer implementacao
 
