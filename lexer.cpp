@@ -1,3 +1,8 @@
+/**
+ * 1. Nome: Leonardo Rothier Soares Cardoso  Matricula: 597690
+ * 2. Nome: Henrique Hott                    Matricula: 565534
+ *
+ * */
 #include <string>
 #include <map>
 #include <iostream>
@@ -157,7 +162,7 @@ struct Lexer
     static int state9(char c, stringstream &lexeme);
     static int state10(char c, stringstream &lexeme);
     static int state11(char c, stringstream &lexeme);
-    static int state12(char c, stringstream &lexeme);
+    //static int state12(char c, stringstream &lexeme);
     static int state13(char c, stringstream &lexeme);
     static int state14(char c, stringstream &lexeme);
 
@@ -274,7 +279,6 @@ void LexerRegistry::nextToken()
             
             if (!Lexer::IsValid(c)) {
             
-                cout << c << "\n";
                 stringstream errMsg;
                 errMsg << _numLines_ << "\ncaractere invalido.\n";
                 throw runtime_error(errMsg.str());
@@ -321,7 +325,7 @@ void LexerRegistry::nextToken()
             state = Lexer::state11(c, lexeme);
             break;
         case 12:
-            state = Lexer::state12(c, lexeme);
+           // state = Lexer::state12(c, lexeme);
             break;
         case 13:
             state = Lexer::state13(c, lexeme);
@@ -332,7 +336,7 @@ void LexerRegistry::nextToken()
         }
 
     }
-    cout << _numLines_ << " ******* " << lexeme.str() << "\n";
+   // cout << _numLines_ << " ******* " << lexeme.str() << "\n";
 }
 
 void LexerRegistry::set(Token token, string lexeme, TSCell *addr)
@@ -528,26 +532,43 @@ int Lexer::state11(char c, stringstream &lexeme)
 {
     int nextState;
 
+    if (isHex(c))
+    {
+        lexeme << c;
+        nextState = 11;
+        if(lexeme.str().length() == 4){ // pendente
+            nextState = 15; //limite 0xDD
+        }
+    }
+    else
+    {
+        if(lexeme.str().length() != 4){
+            if(c == EOF){
+                stringstream errMsg;
+                errMsg << _numLines_ << "\nfim de arquivo nao esperado.\n";
+                throw runtime_error(errMsg.str());
+            }
+            stringstream errMsg;
+            errMsg << _numLines_ << "\nlexeme nao identificado [" << lexeme.str() << "].\n";
+            throw runtime_error(errMsg.str());
+        }
+        std::cin.putback(c); // não hex, coloca o caracter de volta para leitura, e aceita o hex lido
+        c = -1; // reseta c, pois voltou para entrada
+        nextState = 15; // aceitar o hex que já lemos
+        //henrique da o set aquiii
+    }
+    /*
     if (c == EOF)
     {
         stringstream errMsg;
         errMsg << _numLines_ << "\nfim de arquivo nao esperado.\n";
         throw runtime_error(errMsg.str());
     }
+    */
 
-    if (isHex(c))
-    {
-        lexeme << c;
-        nextState = 12;
-    }
-    else
-    {
-        stringstream errMsg;
-        errMsg << _numLines_ << "\nlexema nao identificado [" << lexeme.str() << "].\n";
-        throw runtime_error(errMsg.str());
-    }
+    return nextState;
 }
-
+/*
 int Lexer::state12(char c, stringstream &lexeme)
 {
     int nextState;
@@ -572,7 +593,7 @@ int Lexer::state12(char c, stringstream &lexeme)
         throw runtime_error(errMsg.str());
     }
 }
-
+*/
 int Lexer::state5(char c, stringstream &lexeme)
 {
     int nextState = 15;
@@ -757,7 +778,7 @@ bool Lexer::isNumber(char c)
 bool Lexer::isHex(char c)
 {
     bool result = false;
-    if((c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || isNumber(c)){
+    if( (c >= 'A' && c <= 'F') || isNumber(c)){
         result = true; // is hex
     }
 
