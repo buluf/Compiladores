@@ -44,7 +44,6 @@ dseg SEGMENT PUBLIC
 dseg ENDS
 
 
-
 cseg SEGMENT PUBLIC 
         ;agora iremos realizar a atribuição do const no id string(hello world)
         ;e em seguida iremos printar o id e ver se o valor foi alterado do id
