@@ -1505,6 +1505,7 @@ void Parser::D()
       constType = _lexreg_.type;
       constLex = _lexreg_.lexeme;
       matchToken(Token::Const);
+      
       // Verificar compatibilidade dos tipos
       if (signal)
       {
