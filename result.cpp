@@ -11,7 +11,7 @@ using namespace std;
  *  @author Leonardo Rothier Soares Cardoso(597690) 
  * 
  * 
- *  Trabalho Pratico de compiladoes parte 1 (TP1 + TP2)
+ *  Trabalho Pratico de compiladoes - Final
  *  Disciplina: Compiladores 2020/1 
  *  Turma: Ciencia da Computacao/Manha
  * 
@@ -26,10 +26,14 @@ using namespace std;
  *          - LexRegister.hpp
  *          - Lexer.hpp
  *          - Parser.hpp
+ *          - CodeGen.hpp
+ *          - Writer.hpp
  *          - globals.cpp
  *          - TableSymbols.cpp
  *          - LexRegister.cpp
  *          - Lexer.cpp
+ *          - Writer.cpp
+ *          - CodeGen.cpp
  *          - Parser.cpp
  *          - main.cpp
  * 
@@ -165,7 +169,7 @@ private:
   /** 
          * @brief  Metodo que inicia a tabela de simbolos com os tokens das palavras resevadas 
          * 
-        */
+  */
   void setUp();
 
 public:
@@ -317,8 +321,9 @@ struct Parser
 };
 /** 
  * **************************************************
- * ==================codeGen.hpp======================
- * 
+ * ==================CodeGen.hpp======================
+ * Declaracoes dos metodos de geracao de codigo para
+ * assembly 80x86
  * ***************************************************
  *
  */
@@ -349,7 +354,7 @@ struct CodeGen
   static int write_neg(int addr, Type type);
 
   static void assign(int targetAddr, int sourceAddr, Type addrType);
-  static void write_while(int ExpAddr,int labelEnd);
+  static void write_while(int ExpAddr, int labelEnd);
   static void write_end_while(int labelBegin, int labelEnd);
   static void write_if(int ExpAddr, int labelFalse);
   static void write_if_end(int labelEnd);
@@ -1214,8 +1219,10 @@ int CodeGen::alloc_id(Type idType, string constLex)
   else if (idType == Type::Byte)
   {
     string val = constLex.empty() ? "?" : constLex;
-    if(!constLex.empty()){
-      if(constLex.length() == 4 && constLex.at(1) == 'x'){
+    if (!constLex.empty())
+    {
+      if (constLex.length() == 4 && constLex.at(1) == 'x')
+      {
         int dec;
         stringstream ss;
         ss << std::hex << constLex;
@@ -1227,8 +1234,7 @@ int CodeGen::alloc_id(Type idType, string constLex)
     }
     else
       val = "?";
-    
-    
+
     writer.writeln("\tbyte " + val + "\t;Byte alocado na pos " + to_string(newAddr));
     _local_ += 1;
   }
@@ -1259,11 +1265,11 @@ int CodeGen::alloc_id(Type idType, string constLex)
         writer.writeln("\tbyte " + ss.str());
         writer.writeln("\tbyte " + to_string(256 - constLex.length() + 1) + " DUP(?)\t;String alocada na pos " + to_string(newAddr));
       }
-      else {
-          ss << constLex.substr(0, constLex.length() - 1) << "$\"";
-          writer.writeln("\tbyte " + ss.str()  + "\t;String alocada na pos " + to_string(newAddr));
+      else
+      {
+        ss << constLex.substr(0, constLex.length() - 1) << "$\"";
+        writer.writeln("\tbyte " + ss.str() + "\t;String alocada na pos " + to_string(newAddr));
       }
-
     }
     else
       writer.writeln("\tbyte 100h DUP(?) ;\tString alocada na pos(" + to_string(newAddr) + ")");
@@ -1309,16 +1315,17 @@ int CodeGen::alloc_const(string constLex, Type constType)
     newAddr = new_tmp(constType);
     // escolher registro de acordo com o tipo
     string reg = constType != Type::Integer ? "al" : "ax";
-    
-    if(constType == Type::Boolean)
+
+    if (constType == Type::Boolean)
       constLex = constLex.compare("TRUE") == 0 ? "0FFh" : "0h";
-    
-    if(constType ==  Type::Byte && constLex.length() == 4 && constLex.at(1) == 'x'){
+
+    if (constType == Type::Byte && constLex.length() == 4 && constLex.at(1) == 'x')
+    {
       int dec;
       stringstream ss;
       ss << std::hex << constLex;
       ss >> dec;
-      
+
       constLex = to_string(dec);
     }
 
@@ -1338,14 +1345,14 @@ int CodeGen::alloc_const(string constLex, Type constType)
       writer.writeln("\tbyte " + ss.str());
       writer.writeln("\tbyte " + to_string(256 - constLex.length() + 1) + " DUP(?)\t;String alocada na pos " + to_string(newAddr));
     }
-    else {
-        ss << constLex.substr(0, constLex.length() - 1) << "$\"";
-        writer.writeln("\tbyte " + ss.str()  + "\t;String alocada na pos " + to_string(newAddr));
+    else
+    {
+      ss << constLex.substr(0, constLex.length() - 1) << "$\"";
+      writer.writeln("\tbyte " + ss.str() + "\t;String alocada na pos " + to_string(newAddr));
     }
     _local_ += 256;
     end_dseg();
     start_cseg();
-    
   }
 
   return newAddr;
@@ -1357,7 +1364,7 @@ int CodeGen::write_I(int Jaddr, int J1addr, Type Jtype, Type J1type, Type Itype,
   writer.writeln("\n;--------------- Escrevendo expressao I ----------------");
   writer.writeln("\tmov ax, ds:[" + to_string(Jaddr) + "]\t; Carregando ax com J");
   writer.writeln("\tmov bx, ds:[" + to_string(J1addr) + "]\t; Carregando bx com J1 ");
-  cout << "Jtype: "  << Jtype << " J1type: " << J1type << "\n"; 
+  // cout << "Jtype: " << Jtype << " J1type: " << J1type << "\n";
   if (Jtype != Type::Integer)
     writer.writeln("\tmov ah, 0\t; zerando registrador alto de ax");
 
@@ -1413,16 +1420,16 @@ int CodeGen::write_ExpS(int Iaddr, int I1addr, Type Itype, Type I1type, Type Exp
     writer.writeln("\tcmp bl, 024h ; Verica se e final de string");
     writer.writeln("\tjne R" + to_string(rotConcat) + "\t;voltar a concat se nao for final de string");
   }
-  else if(ExpStype == Type::Boolean)
+  else if (ExpStype == Type::Boolean)
   {
     int labelTrue = new_label();
     writer.writeln("\n;------------ Escrevendo expressao ExpS (OR) --------------");
     writer.writeln("\tmov di, " + to_string(Iaddr) + "\t;di <- I");
-    writer.writeln("\tmov si, " + to_string(I1addr)    + "\t;si <- I1");
-    writer.writeln("\tmov bx, " +  to_string(newAddr)  + "\t;bx <- temp");
+    writer.writeln("\tmov si, " + to_string(I1addr) + "\t;si <- I1");
+    writer.writeln("\tmov bx, " + to_string(newAddr) + "\t;bx <- temp");
     writer.writeln("\tmov cl, ds:[di]\t;cl <- MEM[di]");
     writer.writeln("\tcmp cl, 0FFh\t;if cl == true");
-    writer.writeln("\tje R"+ to_string(labelTrue) + "\t; se trus jump para verdade");
+    writer.writeln("\tje R" + to_string(labelTrue) + "\t; se trus jump para verdade");
     writer.writeln("\tmov cl, ds:[si]\t; se I nao foi verdade I1 tem q ser verdade");
     write_label(labelTrue);
     writer.writeln("\tmov ds:[bx], cl\t; temp <- true");
@@ -1442,7 +1449,7 @@ int CodeGen::write_ExpS(int Iaddr, int I1addr, Type Itype, Type I1type, Type Exp
 
     if (op == Token::Sum)
       writer.writeln("\t add ax, bx\t; ax = ax + bx ");
-    else 
+    else
       writer.writeln("\tsub ax, bx\t; ax = ax - bx ");
 
     if (ExpStype == Type::Integer)
@@ -1564,7 +1571,7 @@ void CodeGen::write_output(int addr, Type type)
     writer.writeln("\tmov ax, ds:[" + to_string(addr) + "]\t; Carregando ax com valor no addr");
     if (type == Type::Byte)
       writer.writeln("\tmov ah, 0\t; zerando registrador alto de ax");
-    
+
     int newTmp = _temp_;
     _temp_ += 256;
     int r0 = new_label();
@@ -1625,15 +1632,16 @@ void CodeGen::new_line()
   writer.writeln("\tmov DL, 0Ah");
   writer.writeln("\tint 21h");
 }
-void CodeGen::read_string(int idAddr){
+void CodeGen::read_string(int idAddr)
+{
   int r0 = new_label();
-  int r1 = new_label();  
-  int buffer  = _temp_;
+  int r1 = new_label();
+  int buffer = _temp_;
   _temp_ += 256;
   writer.writeln("\n;----------------- Entrada String ---------------------");
   writer.writeln("\tmov dx," + to_string(buffer) + "\t;dx <- buffer.end ");
   writer.writeln("\tmov al, 0FFh\t ;tam do buffer(255)");
-  writer.writeln("\tmov ds:[" + to_string(buffer)  + "D], al\t ; MEM[buffer.end] <- al(tam do buffer)");
+  writer.writeln("\tmov ds:[" + to_string(buffer) + "D], al\t ; MEM[buffer.end] <- al(tam do buffer)");
   writer.writeln("\tmov ah, 0Ah");
   writer.writeln("\tint 21h");
   writer.writeln("");
@@ -1653,21 +1661,21 @@ void CodeGen::read_string(int idAddr){
   writer.writeln("\tmov ds:[si], bl");
   writer.writeln("\tadd di, 1 \t; count buffer++");
   writer.writeln("\tadd si, 1 \t; count id++");
-  writer.writeln("\tjmp R"+ to_string(r0));
+  writer.writeln("\tjmp R" + to_string(r0));
   write_label(r1);
   writer.writeln(";fim_loop");
   writer.writeln("mov cl, 024h");
   writer.writeln("mov ds:[si], cl \t;MEM[si] <- $ (fim, da string)");
-
 }
-void CodeGen::read_int(int idAddr){
+void CodeGen::read_int(int idAddr)
+{
   int r0 = new_label();
   int r1 = new_label();
   int r2 = new_label();
-  int buffer  = _temp_;
+  int buffer = _temp_;
   _temp_ += 256;
   writer.writeln("\n;----------------- Entrada Int ---------------------");
-  writer.writeln("\tmov dx," +  to_string(buffer) +"\t;dx <- buffer.end");
+  writer.writeln("\tmov dx," + to_string(buffer) + "\t;dx <- buffer.end");
   writer.writeln("\tmov al, 0FFh\t ;tam do buffer(255)");
   writer.writeln("\tmov ds:[" + to_string(buffer) + "D], al\t ; MEM[buffer.end] <- al(tam do buffer)");
   writer.writeln("\tmov ah, 0Ah");
@@ -1686,7 +1694,7 @@ void CodeGen::read_int(int idAddr){
   writer.writeln("\tmov bh,0");
   writer.writeln("\tmov bl, ds:[di]\t;caractere");
   writer.writeln("\tcmp bx, 2Dh\t;verifica sinal(2D é o valor do negativo '-' em hexadecimal na tabela asc ii");
-  writer.writeln("\tjne R"+ to_string(r0) + "\t; se nao negativo");
+  writer.writeln("\tjne R" + to_string(r0) + "\t; se nao negativo");
   writer.writeln("\tmov dx, -1 \t;valor sinal -");
   writer.writeln("\tadd di, 1\t;proximo valor da string");
   writer.writeln("\tmov bl, ds:[di]\t;bl <- proximo caracter");
@@ -1695,21 +1703,23 @@ void CodeGen::read_int(int idAddr){
   writer.writeln("\tmov dx, 0\t;reg. multiplicação");
   write_label(r1);
   writer.writeln("\tcmp bx, 0dh\t;verifica fim string");
-  writer.writeln("\tje R" + to_string(r2) + "\t;salta se fim string" );
+  writer.writeln("\tje R" + to_string(r2) + "\t;salta se fim string");
   writer.writeln("\timul cx \t;mult. 10");
   writer.writeln("\tsub bx, 48 \t;subtract 48 from ASCII value of char to get integer");
   writer.writeln("\tadd ax, bx\t;soma valor caractere");
   writer.writeln("\tadd di, 1\t;incrementa base");
   writer.writeln("\tmov bh, 0");
   writer.writeln("\tmov bl, ds:[di]\t;proximo caractere");
-  writer.writeln("\tjmp R" + to_string(r1)  + "\t;loop");
+  writer.writeln("\tjmp R" + to_string(r1) + "\t;loop");
   write_label(r2);
   writer.writeln("\tpop cx\t;desempilha sinal");
   writer.writeln("\timul cx\t;mult. sinal");
   writer.writeln("mov ds:[" + to_string(idAddr) + "], ax\t; guardar valor no idAddr");
 }
-void CodeGen::read_ln(int idAddr, Type Idtype){
-  if(Idtype == Type::String){
+void CodeGen::read_ln(int idAddr, Type Idtype)
+{
+  if (Idtype == Type::String)
+  {
     CodeGen::read_string(idAddr);
   }
   else
@@ -1717,14 +1727,16 @@ void CodeGen::read_ln(int idAddr, Type Idtype){
     CodeGen::read_int(idAddr);
   }
 }
-void CodeGen::write_if(int ExpAddr, int labelFalse){
+void CodeGen::write_if(int ExpAddr, int labelFalse)
+{
   writer.writeln("\n;--------------- Test if -------------------");
   writer.writeln("\tmov al, ds:[" + to_string(ExpAddr) + "]\t; Carregar");
   writer.writeln("\tcmp al, 0h;");
   writer.writeln("je R" + to_string(labelFalse));
 }
 
-void CodeGen::write_if_end(int labelEnd){
+void CodeGen::write_if_end(int labelEnd)
+{
   writer.writeln("jmp R" + to_string(labelEnd));
 }
 
@@ -1735,14 +1747,13 @@ int CodeGen::new_label()
   return newLabel;
 }
 
-void CodeGen::write_while(int ExpAddr, int labelEnd){
+void CodeGen::write_while(int ExpAddr, int labelEnd)
+{
   writer.writeln("\n;------------- Loop Test -----------------");
   writer.writeln("\tmov al, ds:[" + to_string(ExpAddr) + "]\t; Carregar ExP em al");
   writer.writeln("\tcmp al, 0h;");
   writer.writeln("je R" + to_string(labelEnd) + "\t; Pula para o final do loop caos exp seja FALSE");
 }
-
-
 
 void CodeGen::write_label(int label)
 {
@@ -2200,8 +2211,9 @@ void Parser::IO()
       CodeGen::write_output(ExpAddr, ExpType);
       CodeGen::reset_tmp();
     }
-    
-    if (newLine){
+
+    if (newLine)
+    {
       CodeGen::new_line();
     }
 
@@ -2211,8 +2223,8 @@ void Parser::IO()
 }
 
 void Parser::L()
-{ 
-  
+{
+
   // cout << "Entrei no L\n";
   Type ExpType;
   int ExPAddr;
@@ -2264,7 +2276,7 @@ void Parser::T()
   int ExPAddr;
   int labelEnd;
   int labelFalse;
-  
+
   matchToken(Token::If);
   matchToken(Token::OpenParentheses);
 
@@ -2303,7 +2315,7 @@ void Parser::T()
   else
     Cmd();
 
-  if(_lexreg_.token == Token::Else)
+  if (_lexreg_.token == Token::Else)
     CodeGen::write_if_end(labelEnd);
 
   CodeGen::write_label(labelFalse);
@@ -2732,7 +2744,6 @@ void Parser::J(Type &Jtype, int &Jaddr)
  *
  */
 
-// TESTE DO ANALISADOR SINTATICO + LEXICO
 int main(int argc, char const *argv[])
 {
   try
@@ -2741,7 +2752,7 @@ int main(int argc, char const *argv[])
     Parser::S();
     if (cin.peek() != EOF)
     {
-      std::cout << _numLines_ << "\ntoken nao esperado2 [" << _lexreg_.lexeme << "].\n";
+      std::cout << _numLines_ << "\ntoken nao esperado [" << _lexreg_.lexeme << "].\n";
       exit(1);
     }
   }

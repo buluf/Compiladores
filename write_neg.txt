@@ -1,0 +1,28 @@
+int CodeGen::write_neg(int addr, Type type)
+{
+  int newAddr;
+  if (type == Type::Boolean)
+  {
+    newAddr = new_tmp(Type::Boolean);
+    writer.writeln(";-------------------- Negacao Logica ------------------------");
+    writer.writeln("\tmov ax, ds:[" + to_string(addr) + "]\t; ax <- MEM[id.address]");
+    writer.writeln("\tmov ah, 0");
+    writer.writeln("\tneg ax");
+    writer.writeln("\tadd ax, 255");
+    writer.writeln("\tmov ds:[" + to_string(newAddr) + "D], ax\t;MEM[temp.address] <- ax");
+    writer.writeln("");
+    return newAddr;
+  }
+  else
+  {
+    newAddr = new_tmp(Type::Integer);
+    writer.writeln(";----------------- Negacao Aritimetica ---------------------");
+    writer.writeln("\tmov ax, ds:[" + to_string(addr) + "]\t;Carregando ax com valor do endereco J1");
+    if (type == Type::Byte)
+      writer.writeln("\tmov ah, 0\t; zerando registrador alto de ax");
+
+    writer.writeln("\tneg ax\t;Negando valor em Ax");
+    writer.writeln("\tmov ds:[" + to_string(newAddr) + "], ax\t;Mover para o endereco o valor de al");
+    return newAddr;
+  }
+}

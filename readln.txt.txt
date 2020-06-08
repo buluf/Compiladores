@@ -1,0 +1,88 @@
+void CodeGen::read_string(int idAddr){
+  int r0 = new_label();
+  int r1 = new_label();
+  int buffer = new_tmp(Type::String);
+  writer.writeln("\tmov dx," + to_string(buffer) + "\t;dx <- buffer.end ");
+  writer.writeln("\tmov al, 0FFh\t ;tam do buffer(255)");
+  writer.writeln("\tmov ds:[" + to_string(buffer) "D], al\t ; MEM[buffer.end] <- al(tam do buffer)");
+  writer.writeln("\tmov ah, 0Ah");
+  writer.writeln("\tint 21h");
+  writer.writeln("");
+  writer.writeln("\tmov ah, 02h")
+  writer.writeln("\tmov dl, 0Dh");
+  writer.writeln("\tint21h");
+  writer.writeln("\tmov dl, 0Ah");
+  writer.writeln("\tint 21h");
+  writer.writeln("");
+  writer.writeln("\tmov di, " + to_string(buffer + 2) + "\t;di <- buffer.end + 2 (posicao do string)");
+  writer.writeln("\tmov si, " + to_string(idAddr) + "\t;si <- id.addr");
+  writer.writeln(";comecar loop para ler do buffer para nossa string");
+  write_label(r0);
+  writer.writeln("\tmov bl, ds:[di]\t;bl <- MEM[di]");
+  writer.writeln("\tcmp bx, 0Dh\t;verifica fim string");
+  writer.writeln("\tje R" + to_string(r1));
+  writer.writeln("\tmov ds:[si], bl");
+  writer.writeln("\tadd di, 1 \t; count buffer++");
+  writer.writeln("\tadd si, 1 \t; count id++");
+  writer.writeln("\tjmp R"+ to_string(r0));
+  write_label(r1);
+  writer.writeln(";fim_loop");
+  writer.writeln("mov cl, 024h");
+  writer.writeln("mov ds:[si], cl \t;MEM[si] <- $ (fim, da string)");
+
+}
+void CodeGen::read_Int(int idAddr){
+  int r0 = new_label();
+  int r1 = new_label();
+  int r2 = new_label();
+  int buffer  = new_tmp(Type::String); //gerando end. do buffer
+  writer.writeln("\tmov dx," to_string(buffer) +"\t;dx <- buffer.end");
+  writer.writeln("\tmov al, 0FFh\t ;tam do buffer(255)");
+  writer.writeln("\tmov ds:[" + to_string(buffer) "D], al\t ; MEM[buffer.end] <- al(tam do buffer)");
+  writer.writeln("\tmov ah, 0Ah");
+  writer.writeln("\tint 21h");
+  writer.writeln("");
+  writer.writeln("\tmov ah, 02h")
+  writer.writeln("\tmov dl, 0Dh");
+  writer.writeln("\tint21h");
+  writer.writeln("\tmov dl, 0Ah");
+  writer.writeln("int 21h");
+  writer.writeln("");
+  writer.writeln("\tmov di, " + to_string(buffer + 2) + "\t;di <- buffer.end + 2(posicao do string)");
+  writer.writeln("\tmov ax, 0 \t;acumulador");
+  writer.writeln("\tmov cx, 10 \t;base decimal(sera usado para multiplicar)");
+  writer.writeln("\tmov dx, 1\t;valor sinal +");
+  writer.writeln("\tmov bh,0");
+  writer.writeln("\tmov bl, ds:[di]\t;caractere");
+  writer.writeln("\tcmp bx, 2Dh\t;verifica sinal(2D é o valor do negativo '-' em hexadecimal na tabela asc ii");
+  writer.writeln("\tjne " + "R"+ to_string(r0) + "\t; se nao negativo");
+  writer.writeln("\tmov dx, -1 \t;valor sinal -");
+  writer.writeln("\tadd di, 1\t;proximo valor da string");
+  writer.writeln("\tmov bl, ds:[di]\t;bl <- proximo caracter")
+  write_label(r0);
+  writer.writeln("\tpush dx\t;empilha sinal");
+  writer.writeln("\tmov dx, 0\t;reg. multiplicação");
+  write_label(r1);
+  writer.writeln("\tcmp bx, 0dh\t;verifica fim string");
+  writer.writeln("\tje R" + to_string(r2) + "\t;salta se fim string" );
+  writer.writeln("\timul cx \t;mult. 10");
+  writer.writeln("\tsub bx, 48 \t;subtract 48 from ASCII value of char to get integer");
+  writer.writeln("\tadd ax, bx\t;soma valor caractere");
+  writer.writeln("\tadd di, 1\t;incrementa base");
+  writer.writeln("\tmov bh, 0");
+  writer.writeln("\tmov bl, ds:[di]\t;proximo caractere");
+  writer.writeln("\tjmp R" + to_string(r1) "\t;loop");
+  write_label(r2);
+  writer.writeln("\tpop cx\t;desempilha sinal");
+  writer.writeln("\timul cx\t;mult. sinal");
+  writer.writeln("mov ds:[" + to_string(idAddr) + "], ax\t; guardar valor no idAddr");
+}
+void CodeGen::read_ln(int idAddr, Type Idtype){
+  if(Idtype == Type::String){
+    CodeGen::read_string(idAddr);
+  }
+  else
+  {
+    CodeGen::read_Int(idAddr);
+  }
+}
